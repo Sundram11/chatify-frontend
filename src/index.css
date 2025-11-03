@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+/* src/index.css or global.css */
+@layer base {
+  html {
+    @apply bg-white text-black;
+  }
+
+  html.dark {
+    @apply bg-gray-900 text-white;
+  }
+}
+
+/* Hide scrollbars globally */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
