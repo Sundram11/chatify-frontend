@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import friendService from "../../backendServices/friends.js";
 import messageService from "../../backendServices/messages.js";
 import { Button } from "../index.js";
-import { MoreVertical, X } from "lucide-react";
+import { MoreVertical, X, ArrowLeft } from "lucide-react";
 
-const ChatHeader = ({ chat }) => {
+const ChatHeader = ({ chat, onBack }) => {
   const navigate = useNavigate();
   const [showOptions, setShowOptions] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ const ChatHeader = ({ chat }) => {
       await friendService.unfollowFriend(friend._id);
       alert(`${friend.fullName} unfollowed successfully`);
       setShowOptions(false);
-      navigate("/"); // go back after unfollow
+      navigate("/");
     } catch (error) {
       alert(error.response?.data?.message || "Error unfollowing friend");
       console.error(error);
@@ -39,7 +39,7 @@ const ChatHeader = ({ chat }) => {
       await messageService.deleteChat(chat._id);
       alert("Chat deleted successfully");
       setShowOptions(false);
-      navigate("/"); // return to home
+      navigate("/");
     } catch (error) {
       alert(error.response?.data?.message || "Failed to delete chat");
       console.error(error);
@@ -52,59 +52,118 @@ const ChatHeader = ({ chat }) => {
 
   return (
     <>
-      <header className="bg-teal-600 text-white px-4 py-3 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-3">
-          {/* ✅ Avatar */}
+      {/* 🌐 Header */}
+      <header
+        className="
+          flex items-center justify-between
+          px-4 sm:px-6 py-3
+          bg-teal-600 dark:bg-teal-700 text-white
+          shadow-md dark:shadow-none
+          sticky top-0 z-30
+        "
+      >
+        {/* Left section: Back + avatar + name */}
+        <div className="flex items-center gap-3 min-w-0">
+          {/* 📱 Mobile back arrow */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="
+                md:hidden p-1.5 rounded-full
+                hover:bg-teal-700 dark:hover:bg-teal-800
+                transition
+              "
+            >
+              <ArrowLeft size={22} />
+            </button>
+          )}
+
+          {/* 🖼 Avatar */}
           {chat.isGroup ? (
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
+            <div className="
+              w-10 h-10 rounded-full 
+              flex items-center justify-center font-semibold
+              bg-blue-600 dark:bg-blue-500 text-white
+              shadow-inner
+            ">
               {chat.name?.charAt(0).toUpperCase()}
             </div>
           ) : (
             <img
               src={chat.friend?.profilePic || "/profileImage.png"}
-              alt="no profile"
-              className="w-10 h-10 rounded-full object-cover"
+              alt="Profile"
+              className="w-10 h-10 rounded-full object-cover border border-white/20"
             />
           )}
 
-          <p className="font-semibold text-lg">
+          {/* Name */}
+          <p className="
+            font-semibold text-base sm:text-lg truncate
+            max-w-[130px] sm:max-w-[200px]
+          ">
             {chat?.isGroup ? chat.name : friend?.fullName}
           </p>
         </div>
 
+        {/* ⚙️ Options button */}
         <button
           onClick={() => setShowOptions(true)}
-          className="p-2 rounded-full hover:bg-teal-700 transition"
+          className="
+            p-2 rounded-full hover:bg-teal-700 dark:hover:bg-teal-800
+            transition-colors
+          "
         >
           <MoreVertical size={22} />
         </button>
       </header>
 
+      {/* ⚡ Options Modal */}
       {showOptions && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="relative bg-white rounded-2xl shadow-lg p-6 w-80">
+        <div
+          className="
+            fixed inset-0 bg-black/40 dark:bg-black/60 
+            flex justify-center items-center z-50
+            px-4
+          "
+        >
+          <div
+            className="
+              relative w-full max-w-sm bg-white dark:bg-gray-800
+              rounded-2xl shadow-lg dark:shadow-xl
+              p-6 sm:p-7
+            "
+          >
             <button
               onClick={() => setShowOptions(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-black"
+              className="
+                absolute top-3 right-3 text-gray-500 dark:text-gray-400 
+                hover:text-black dark:hover:text-white transition
+              "
             >
               <X size={20} />
             </button>
 
-            <div className="text-center mt-2 mb-4">
-              <h2 className="text-xl font-bold mb-1">
+            {/* User Info */}
+            <div className="text-center mt-1 mb-5">
+              <h2 className="text-xl font-bold mb-1 text-gray-900 dark:text-gray-100">
                 {friend?.fullName || chat?.name}
               </h2>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {friend?.email || "No email available"}
               </p>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* Actions */}
+            <div className="flex flex-col gap-3">
               {!chat?.isGroup && (
                 <Button
                   onClick={handleUnfollow}
                   disabled={loading}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                  className="
+                    bg-yellow-500 hover:bg-yellow-600 
+                    dark:bg-yellow-600 dark:hover:bg-yellow-500 
+                    text-white
+                  "
                 >
                   {loading ? "Processing..." : "Unfollow"}
                 </Button>
@@ -113,7 +172,11 @@ const ChatHeader = ({ chat }) => {
               <Button
                 onClick={handleDeleteChat}
                 disabled={loading}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="
+                  bg-red-600 hover:bg-red-700 
+                  dark:bg-red-700 dark:hover:bg-red-600 
+                  text-white
+                "
               >
                 {loading ? "Processing..." : "Delete Chat"}
               </Button>

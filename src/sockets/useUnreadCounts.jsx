@@ -1,90 +1,79 @@
 // sockets/useUnreadCounts.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getSocket, connectSocket } from "../socket.js";
 import { ChatEventEnum } from "../constant.js";
 import toast from "react-hot-toast";
 import messageService from "../backendServices/messages.js";
 
-const useUnreadCounts = (currentChatId, token, userId, onSocketMessage) => {
-  const [unreadMap, setUnreadMap] = useState({}); // { chatId: { hasUnread, senderId } }
+const useUnreadCounts = (currentChatId, token, userId, onReorderChat) => {
+  const [unreadMap, setUnreadMap] = useState({});
 
-  // 1. FETCH UNREAD ON MOUNT (only from others)
+  // Load initial
   useEffect(() => {
     if (!token || !userId) return;
 
-    (async () => {
+    const load = async () => {
       try {
-        const res = await messageService.getUnreadCounts();
-        // res.data.data = { "0": {chatId, hasUnread, senderId}, ... }
-        const apiData = res?.data?.data || {};
-
+        const { data } = await messageService.getUnreadCounts();
+        const apiData = data?.data || {};
         const filtered = {};
         Object.values(apiData).forEach((item) => {
           if (item.senderId !== userId) {
-            filtered[item.chatId] = {
-              hasUnread: true,
-              senderId: item.senderId,
-            };
+            filtered[item.chatId] = { hasUnread: true, senderId: item.senderId };
           }
         });
-
         setUnreadMap(filtered);
-        // NO TOAST HERE — only real-time
       } catch (err) {
-        console.error("Failed to load unread counts:", err);
+        console.error(err);
       }
-    })();
+    };
+    load();
   }, [token, userId]);
 
-  // 2. REAL-TIME SOCKET UPDATES
+  // Socket updates
   useEffect(() => {
     if (!token || !userId) return;
-
     let socket = getSocket();
     if (!socket) socket = connectSocket(token);
 
-    const handleUnread = ({ chatId, senderId, message }) => {
-      if (senderId === userId) return; // ignore my own messages
-
+    const handle = ({ chatId, senderId, message }) => {
+      if (senderId === userId) return;
       setUnreadMap((prev) => {
-        const updated = { ...prev };
-
+        const upd = { ...prev };
         if (chatId === currentChatId) {
-          // I'm viewing this chat → mark as read
-          delete updated[chatId];
+          delete upd[chatId];
         } else {
-          updated[chatId] = { hasUnread: true, senderId };
-          toast(
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>New message</span>
-            </div>,
-            { duration: 3000, position: "top-right" }
-          );
-
-          if (typeof onSocketMessage === "function") {
-            onSocketMessage(chatId, message);
-          }
+          upd[chatId] = { hasUnread: true, senderId };
+          toast(<div>New message</div>, { duration: 3000 });
         }
-        return updated;
+        return upd;
       });
+      onReorderChat?.(chatId, message);
     };
 
-    socket.on(ChatEventEnum.UNREAD_COUNT_UPDATE, handleUnread);
-    return () => socket.off(ChatEventEnum.UNREAD_COUNT_UPDATE, handleUnread);
-  }, [token, currentChatId, userId, onSocketMessage]);
+    socket.on(ChatEventEnum.UNREAD_COUNT_UPDATE, handle);
+    return () => socket.off(ChatEventEnum.UNREAD_COUNT_UPDATE, handle);
+  }, [token, userId, currentChatId, onReorderChat]);
 
-  // 3. CLEAR UNREAD WHEN CHAT IS OPENED
+  // Clear on open
   useEffect(() => {
     if (!currentChatId) return;
     setUnreadMap((prev) => {
-      const updated = { ...prev };
-      delete updated[currentChatId];
-      return updated;
+      const upd = { ...prev };
+      delete upd[currentChatId];
+      return upd;
     });
   }, [currentChatId]);
 
-  return unreadMap;
+  const clearUnread = useCallback((chatId) => {
+    setUnreadMap((prev) => {
+      const upd = { ...prev };
+      delete upd[chatId];
+      return upd;
+    });
+  }, []);
+
+  return { unreadMap, clearUnread };
 };
 
 export default useUnreadCounts;

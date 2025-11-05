@@ -50,11 +50,15 @@ const Message = ({ message, currentUserId, chatType, onDelete, onEdit }) => {
       }`}
     >
       <div
-        className={`relative max-w-xs sm:max-w-sm md:max-w-md p-2 rounded-xl ${
-          isSentByMe ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
-        }`}
+        className={`relative max-w-xs sm:max-w-sm md:max-w-md p-2 rounded-xl backdrop-blur-sm
+          ${
+            isSentByMe
+              ? "bg-emerald-700/80 text-white" // ✅ subtle opacity for my messages
+              : "bg-gray-800/80 text-gray-200" // ✅ same translucent tone
+          }
+        `}
       >
-        {/* 👥 Show sender name in group chats (for received messages) */}
+        {/* 👥 Sender name for group chats */}
         {chatType === "group" && !isSentByMe && (
           <p className="text-xs text-gray-400 mb-1">
             {message.sender?.fullName || "Unknown"}
@@ -79,7 +83,7 @@ const Message = ({ message, currentUserId, chatType, onDelete, onEdit }) => {
           </form>
         ) : (
           <>
-            {/* 🖼️ File / Image message */}
+            {/* 🖼️ File / Image */}
             {message.fileUrl && (
               <div className="mb-1">
                 {message.messageType === "image" ? (
@@ -101,7 +105,7 @@ const Message = ({ message, currentUserId, chatType, onDelete, onEdit }) => {
               </div>
             )}
 
-            {/* 💬 Text message */}
+            {/* 💬 Text */}
             {message.text && (
               <p className="whitespace-pre-wrap break-words">{message.text}</p>
             )}
@@ -123,14 +127,15 @@ const Message = ({ message, currentUserId, chatType, onDelete, onEdit }) => {
               })}
             </span>
 
-            {/* ✅ Read status — show double tick only for my messages */}
             {isSentByMe && (
               <span className="flex items-center ml-1">
                 <CheckCheck
-                  size={16}
-                  color={message.isRead ? "red" : "black"} // blue if read, gray if not
+                  size={20}
+                  strokeWidth={2}
                   className={`transition-colors duration-300 ${
-                    message.isRead ? "text-blue-400" : "text-gray-400"
+                    message.isRead
+                      ? "text-sky-400" // ✅ Deep blue for read
+                      : "text-gray-400 opacity-70" // ✅ Faint gray hollow look
                   }`}
                 />
               </span>
@@ -138,7 +143,7 @@ const Message = ({ message, currentUserId, chatType, onDelete, onEdit }) => {
           </div>
         )}
 
-        {/* ⋮ Message menu (only for my messages) */}
+        {/* ⋮ Message menu */}
         {isSentByMe && (
           <div ref={menuRef} className="absolute top-1 right-1">
             <button

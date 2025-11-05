@@ -3,21 +3,18 @@ import { useDispatch } from "react-redux";
 import { LogOut } from "lucide-react";
 import { authLogout } from "../../store/AuthSlice.js";
 import authService from "../../backendServices/auth.js";
-import { useNavigate } from "react-router-dom"; // ← Add this
+import { useNavigate } from "react-router-dom";
 
 function LogoutBtn({ onLogout }) {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // ← Add this
+  const navigate = useNavigate();
 
   const logout = async () => {
     try {
       await authService.logout();
       dispatch(authLogout());
       console.log("Logout successful");
-
-      // Redirect to login page
       navigate("/login", { replace: true });
-
       onLogout?.();
     } catch (err) {
       console.error("Logout error:", err);
@@ -26,11 +23,18 @@ function LogoutBtn({ onLogout }) {
 
   return (
     <button
-    className="flex items-center w-full px-3 py-2 hover:bg-red-600/80 text-gray-200 gap-2"
       onClick={logout}
+      className="
+        flex items-center w-full px-3 sm:px-4 py-2.5 gap-2 
+        text-sm sm:text-base font-medium rounded-lg
+        text-gray-200 dark:text-gray-100
+        hover:bg-red-600/80 active:bg-red-700
+        transition-all duration-200 ease-in-out
+        focus:outline-none focus:ring-2 focus:ring-red-400 dark:focus:ring-red-500
+      "
     >
-      <LogOut size={18} />
-      <span>Logout</span>
+      <LogOut size={18} className="shrink-0" />
+      <span className="truncate">Logout</span>
     </button>
   );
 }

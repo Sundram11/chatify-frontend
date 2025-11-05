@@ -3,7 +3,7 @@ import React from "react";
 function Button({
   children,
   bgColor = "bg-blue-600 dark:bg-blue-500",
-  textColor = "text-white",
+  textColor = "text-white dark:text-gray-100",
   onClick,
   className = "",
   type = "button",
@@ -15,13 +15,16 @@ function Button({
       type={type}
       disabled={disabled}
       className={`
-        w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-3 
-        rounded-lg font-semibold text-sm sm:text-base 
-        transition-all duration-300 ease-in-out 
-        ${bgColor} ${textColor}
-        hover:opacity-90 active:scale-[0.98]
+        inline-flex items-center justify-center
+        w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3
+        rounded-xl font-medium text-sm sm:text-base
+        tracking-wide whitespace-nowrap
+        transition-all duration-300 ease-in-out
+        shadow-sm hover:shadow-md active:scale-[0.97]
+        focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-300
         disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-2 focus:ring-blue-400 
+        ${bgColor} ${textColor}
+        hover:opacity-95
         ${className}
       `}
     >

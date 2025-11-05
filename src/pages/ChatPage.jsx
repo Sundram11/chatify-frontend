@@ -1,6 +1,6 @@
 import {ChatTab} from "../components/index.js"
 
-function ChatPage(){
+function Profile(){
     return(
         <>
         <ChatTab/>
@@ -8,4 +8,4 @@ function ChatPage(){
     )
 }
 
-export default ChatPage;
+export default Profile;

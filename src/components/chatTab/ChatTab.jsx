@@ -4,10 +4,9 @@ import React, {
   useRef,
   useEffect,
   memo,
-  useMemo,
 } from "react";
-import { useParams, useLocation } from "react-router-dom";
 import { useSelector, shallowEqual } from "react-redux";
+import { ChevronDown } from "lucide-react";
 import Message from "../messagefomat/MessageFormat.jsx";
 import messageService from "../../backendServices/messages.js";
 import useChatSocket from "../../sockets/ChatTabSocket.jsx";
@@ -16,19 +15,18 @@ import ChatInput from "./ChatInput.jsx";
 
 const PAGE_SIZE = 15;
 
-const ChatTab = memo(() => {
-  const { chatId } = useParams();
-  const location = useLocation();
-
+const ChatTab = memo(({ chat, onMessageSent, onBack }) => {
+  const chatId = chat?._id;
   const { accessToken: token, user: currentUser } = useSelector(
     (s) => ({ accessToken: s.auth.accessToken, user: s.auth.user }),
     shallowEqual
   );
 
-  const chat = useMemo(() => location.state?.chat, [location.state]);
+  // ────────────────────────────────────── state
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const containerRef = useRef(null);
   const endRef = useRef(null);
@@ -43,18 +41,16 @@ const ChatTab = memo(() => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
-  /* 🔵 Mark as read helper */
+  // ────────────────────────────────────── helpers
   const markAsRead = useCallback(async ({ chatId, receiverId }) => {
     try {
       await messageService.readMessages({ chatId, receiverId });
-      // no need to await response payload here; socket will update UI
     } catch (err) {
-      // swallow, not critical
-      console.error("❌ markAsRead failed", err);
+      console.error("markAsRead failed", err);
     }
   }, []);
 
-  /* Load Messages */
+  // ────────────────────────────────────── load messages
   const loadMessages = useCallback(
     async (p = 1, prepend = false) => {
       if (!chatId || loadingRef.current) return;
@@ -66,19 +62,13 @@ const ChatTab = memo(() => {
         const newMsgs = data?.messages || [];
 
         setMessages((prev) => {
-          const merged = prepend
-            ? [...newMsgs, ...prev]
-            : [...prev, ...newMsgs];
+          const merged = prepend ? [...newMsgs, ...prev] : [...prev, ...newMsgs];
           setHasMore(data?.pagination?.hasMore ?? false);
           return merged;
         });
 
-        // Mark unread messages (sent by friend) as read — only after messages loaded
-        // guard: chat.friend may be object or id
         const friendId = chat?.friend?._id ?? chat?.friend;
-        if (friendId) {
-          markAsRead({ chatId, receiverId: friendId });
-        }
+        if (friendId) markAsRead({ chatId, receiverId: friendId });
       } catch (err) {
         console.error("Error loading messages:", err);
       } finally {
@@ -89,70 +79,75 @@ const ChatTab = memo(() => {
     [chatId, chat?.friend, markAsRead]
   );
 
-  useEffect(() => {
-    if (!chatId) return;
+  // ────────────────────────────────────── init on chat change
+useEffect(() => {
+  if (!chatId) return;
+  const init = async () => {
     setMessages([]);
     setHasMore(true);
     pageRef.current = 1;
-    loadMessages(1);
-  }, [chatId, loadMessages]);
+    await loadMessages(1);
+  };
+  init();
+}, [chatId, loadMessages]);
 
-  /* 🟥 Delete Message */
+
+  // ────────────────────────────────────── delete / edit
   const handleDeleteMessage = useCallback(async (messageId) => {
-  
     try {
       await messageService.deleteMessage(messageId);
       setMessages((prev) => prev.filter((m) => m._id !== messageId));
     } catch (err) {
-      console.error("❌ Delete message failed:", err);
+      console.error("Delete message failed:", err);
     }
   }, []);
 
-  /* 🟦 Edit Message */
- const handleEditMessage = useCallback(async (messageId, newText) => {
-  try {
-    const { data } = await messageService.editMessage(messageId, newText);
-    setMessages((prev) =>
-      prev.map((m) =>
-        m._id === messageId ? { ...m, ...data, isEdited: true } : m
-      )
-    );
-  } catch (err) {
-    console.error("❌ Edit message failed:", err);
-  }
-}, []);
+  const handleEditMessage = useCallback(async (messageId, newText) => {
+    try {
+      const { data } = await messageService.editMessage(messageId, newText);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, ...data, isEdited: true } : m
+        )
+      );
+    } catch (err) {
+      console.error("Edit message failed:", err);
+    }
+  }, []);
 
-
-  /* Scroll Logic */
+  // ────────────────────────────────────── scroll logic
   const scrollToBottom = useCallback((behavior = "auto") => {
     endRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  const handleScroll = useCallback(() => {
-    const container = containerRef.current;
-    if (!container || loadingRef.current) return;
+ const handleScroll = useCallback(() => {
+  const container = containerRef.current;
+  if (!container || loadingRef.current) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const isNearTop = scrollTop < 120;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
-    shouldAutoScroll.current = isNearBottom;
+  const { scrollTop, scrollHeight, clientHeight } = container;
+  const isNearTop = scrollTop < 120;
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
 
-    if (isNearTop && hasMoreRef.current) {
-      const prevHeight = container.scrollHeight;
-      isPrepending.current = true;
+  shouldAutoScroll.current = isNearBottom;
+  setShowScrollButton(!isNearBottom);
 
-      const nextPage = pageRef.current + 1;
-      pageRef.current = nextPage;
+  if (isNearTop && hasMoreRef.current) {
+    const prevHeight = container.scrollHeight;
+    isPrepending.current = true;
+    const nextPage = pageRef.current + 1;
+    pageRef.current = nextPage;
 
-      loadMessages(nextPage, true).then(() => {
-        requestAnimationFrame(() => {
-          const newHeight = container.scrollHeight;
-          container.scrollTop += newHeight - prevHeight;
-          isPrepending.current = false;
-        });
+    const loadMore = async () => {
+      await loadMessages(nextPage, true);
+      requestAnimationFrame(() => {
+        const newHeight = container.scrollHeight;
+        container.scrollTop += newHeight - prevHeight;
+        isPrepending.current = false;
       });
-    }
-  }, [loadMessages]);
+    };
+    loadMore();
+  }
+}, [loadMessages]);
 
   useEffect(() => {
     const c = containerRef.current;
@@ -169,18 +164,15 @@ const ChatTab = memo(() => {
     prevMsgCount.current = messages.length;
   }, [messages, scrollToBottom]);
 
-  /* Handle Incoming Socket Messages */
+  // ────────────────────────────────────── socket handlers
   const handleSocketMessage = useCallback(
     (incoming) => {
       if (!incoming || incoming.chatId !== chatId) return;
 
-      // Delete
       if (incoming.isDelete) {
         setMessages((prev) => prev.filter((m) => m._id !== incoming._id));
         return;
       }
-
-      // Edit
       if (incoming.isEdit) {
         setMessages((prev) =>
           prev.map((m) =>
@@ -190,12 +182,10 @@ const ChatTab = memo(() => {
         return;
       }
 
-      // New Message
       setMessages((prev) =>
         prev.some((m) => m._id === incoming._id) ? prev : [...prev, incoming]
       );
 
-      // Auto mark as read if message is from friend and chat is open
       if (incoming.sender?._id === chat?.friend?._id) {
         messageService
           .readMessages({ chatId, receiverId: chat.friend._id })
@@ -205,21 +195,11 @@ const ChatTab = memo(() => {
     [chatId, chat?.friend?._id]
   );
 
-  /* Handle Read Receipts – Only Update Specific Messages */
   const handleReadUpdate = useCallback(
     (data) => {
-      // expected payload: { chatId, reader, messageIds: [ ...ids ] }
-      // console for debugging:
-      console.log("🔵 Read event received:", data);
-
       if (!data) return;
       const { chatId: cId, messageIds = [], reader } = data;
-      if (
-        cId !== chatId ||
-        !Array.isArray(messageIds) ||
-        messageIds.length === 0
-      )
-        return;
+      if (cId !== chatId || !messageIds.length) return;
 
       const friendId = String(chat?.friend?._id ?? chat?.friend ?? "");
       const myId = String(currentUser?._id ?? "");
@@ -229,24 +209,23 @@ const ChatTab = memo(() => {
           const senderId = String(
             typeof m.sender === "object" ? m.sender?._id : m.sender ?? ""
           );
-          // Only mark messages *I sent* as read if the friend (reader) is the one who read
           const isMine = senderId === myId;
           const isReadByFriend =
             String(reader) === friendId && messageIds.includes(String(m._id));
 
-          if (isMine && isReadByFriend && !m.isRead) {
-            return { ...m, isRead: true };
-          }
-          return m;
+          return isMine && isReadByFriend && !m.isRead
+            ? { ...m, isRead: true }
+            : m;
         })
       );
     },
     [chatId, chat?.friend, currentUser?._id]
   );
 
+  // **THIS IS THE ONLY LINE THAT CALLS THE SOCKET HOOK**
   useChatSocket(chatId, handleSocketMessage, token, handleReadUpdate);
 
-  /* Send Message */
+  // ────────────────────────────────────── send message
   const onSend = useCallback(
     async ({ text, file }) => {
       const content = text?.trim();
@@ -272,25 +251,28 @@ const ChatTab = memo(() => {
         await messageService.sendMessage(fd);
         shouldAutoScroll.current = true;
         scrollToBottom("smooth");
+        onMessageSent?.({ chatId, createdAt: new Date().toISOString() });
       } catch (err) {
         console.error("Send message failed:", err);
       }
     },
-    [chatId, scrollToBottom]
+    [chatId, scrollToBottom, onMessageSent]
   );
 
+  // ────────────────────────────────────── render
   if (!chatId || !chat) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
         Select a chat to start messaging
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      <ChatHeader chat={chat} />
+    <div className="relative flex flex-col h-full bg-gradient-to-b from-teal-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 transition-all duration-300">
+      <ChatHeader chat={chat} onBack={onBack} />
 
+      {/* Messages */}
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-2"
@@ -298,21 +280,37 @@ const ChatTab = memo(() => {
         {loading && messages.length === 0 && (
           <p className="text-center text-gray-500 text-sm py-2">Loading...</p>
         )}
-
-        {messages.map((m) => (
-          <Message
-            key={m._id}
-            message={m}
-            currentUserId={currentUser?._id}
-            chatType={chat?.isGroup ? "group" : "private"}
-            onDelete={handleDeleteMessage} // ✅ added
-            onEdit={handleEditMessage} // ✅ added
-          />
-        ))}
+        {!loading && messages.length === 0 && (
+          <p className="text-center text-gray-500 dark:text-gray-400 py-8 italic">
+            No messages yet — start the conversation
+          </p>
+        )}
+       {messages.map((m) => (
+  <Message
+    key={m._id}
+    message={m}
+    currentUserId={currentUser?._id}
+    chatType={chat?.isGroup ? "group" : "private"}
+    onDelete={handleDeleteMessage} // stable
+    onEdit={handleEditMessage} // stable
+  />
+))}
 
         <div ref={endRef} />
       </div>
 
+      {/* Scroll-to-bottom button */}
+      {showScrollButton && (
+        <button
+          onClick={() => scrollToBottom("smooth")}
+          className="absolute bottom-24 right-4 bg-teal-600 hover:bg-teal-700 text-white p-2 rounded-full shadow-lg transition"
+          aria-label="Scroll to bottom"
+        >
+          <ChevronDown size={20} />
+        </button>
+      )}
+
+      {/* Input */}
       <ChatInput
         onSend={onSend}
         disabled={chat?.inactiveFor?.includes(currentUser?._id)}
@@ -322,5 +320,4 @@ const ChatTab = memo(() => {
 });
 
 ChatTab.displayName = "ChatTab";
-
 export default ChatTab;

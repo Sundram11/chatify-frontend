@@ -12,7 +12,7 @@ import {
   SignupPage,
   PageNotFound,
   HomePage,
-  ChatPage,
+  // Profile,
   SearchPage,
   RequestPage
   
@@ -27,9 +27,9 @@ const router = createBrowserRouter([
       { path: "/login", element: <LoginPage /> },
       { path: "/signup", element: <SignupPage /> },
       { path: "*", element: <PageNotFound /> },
-      { path: "/chat/:chatId", element: <ChatPage /> },
       { path: "/search", element: <SearchPage /> },
       { path: "/requests", element: <RequestPage /> },
+      // {path: "/profile", element:<Profile/> }
     ],
   },
 ]);
