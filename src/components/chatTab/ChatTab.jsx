@@ -43,50 +43,51 @@ const ChatTab = memo(() => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
- /* 🔵 Mark as read helper */
-const markAsRead = useCallback(async ({ chatId, receiverId }) => {
-  try {
-    await messageService.readMessages({ chatId, receiverId });
-    // no need to await response payload here; socket will update UI
-  } catch (err) {
-    // swallow, not critical
-    console.error("❌ markAsRead failed", err);
-  }
-}, []);
-
-/* Load Messages */
-const loadMessages = useCallback(
-  async (p = 1, prepend = false) => {
-    if (!chatId || loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
-
+  /* 🔵 Mark as read helper */
+  const markAsRead = useCallback(async ({ chatId, receiverId }) => {
     try {
-      const { data } = await messageService.getMessages(chatId, p, PAGE_SIZE);
-      const newMsgs = data?.messages || [];
-
-      setMessages((prev) => {
-        const merged = prepend ? [...newMsgs, ...prev] : [...prev, ...newMsgs];
-        setHasMore(data?.pagination?.hasMore ?? false);
-        return merged;
-      });
-
-      // Mark unread messages (sent by friend) as read — only after messages loaded
-      // guard: chat.friend may be object or id
-      const friendId = chat?.friend?._id ?? chat?.friend;
-      if (friendId) {
-        markAsRead({ chatId, receiverId: friendId });
-      }
+      await messageService.readMessages({ chatId, receiverId });
+      // no need to await response payload here; socket will update UI
     } catch (err) {
-      console.error("Error loading messages:", err);
-    } finally {
-      loadingRef.current = false;
-      setLoading(false);
+      // swallow, not critical
+      console.error("❌ markAsRead failed", err);
     }
-  },
-  [chatId, chat?.friend, markAsRead]
-);
+  }, []);
 
+  /* Load Messages */
+  const loadMessages = useCallback(
+    async (p = 1, prepend = false) => {
+      if (!chatId || loadingRef.current) return;
+      loadingRef.current = true;
+      setLoading(true);
+
+      try {
+        const { data } = await messageService.getMessages(chatId, p, PAGE_SIZE);
+        const newMsgs = data?.messages || [];
+
+        setMessages((prev) => {
+          const merged = prepend
+            ? [...newMsgs, ...prev]
+            : [...prev, ...newMsgs];
+          setHasMore(data?.pagination?.hasMore ?? false);
+          return merged;
+        });
+
+        // Mark unread messages (sent by friend) as read — only after messages loaded
+        // guard: chat.friend may be object or id
+        const friendId = chat?.friend?._id ?? chat?.friend;
+        if (friendId) {
+          markAsRead({ chatId, receiverId: friendId });
+        }
+      } catch (err) {
+        console.error("Error loading messages:", err);
+      } finally {
+        loadingRef.current = false;
+        setLoading(false);
+      }
+    },
+    [chatId, chat?.friend, markAsRead]
+  );
 
   useEffect(() => {
     if (!chatId) return;
@@ -95,6 +96,32 @@ const loadMessages = useCallback(
     pageRef.current = 1;
     loadMessages(1);
   }, [chatId, loadMessages]);
+
+  /* 🟥 Delete Message */
+  const handleDeleteMessage = useCallback(async (messageId) => {
+  
+    try {
+      await messageService.deleteMessage(messageId);
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+    } catch (err) {
+      console.error("❌ Delete message failed:", err);
+    }
+  }, []);
+
+  /* 🟦 Edit Message */
+ const handleEditMessage = useCallback(async (messageId, newText) => {
+  try {
+    const { data } = await messageService.editMessage(messageId, newText);
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === messageId ? { ...m, ...data, isEdited: true } : m
+      )
+    );
+  } catch (err) {
+    console.error("❌ Edit message failed:", err);
+  }
+}, []);
+
 
   /* Scroll Logic */
   const scrollToBottom = useCallback((behavior = "auto") => {
@@ -179,41 +206,43 @@ const loadMessages = useCallback(
   );
 
   /* Handle Read Receipts – Only Update Specific Messages */
- const handleReadUpdate = useCallback(
-  (data) => {
-    // expected payload: { chatId, reader, messageIds: [ ...ids ] }
-    // console for debugging:
-    console.log("🔵 Read event received:", data);
+  const handleReadUpdate = useCallback(
+    (data) => {
+      // expected payload: { chatId, reader, messageIds: [ ...ids ] }
+      // console for debugging:
+      console.log("🔵 Read event received:", data);
 
-    if (!data) return;
-    const { chatId: cId, messageIds = [], reader } = data;
-    if (cId !== chatId || !Array.isArray(messageIds) || messageIds.length === 0)
-      return;
+      if (!data) return;
+      const { chatId: cId, messageIds = [], reader } = data;
+      if (
+        cId !== chatId ||
+        !Array.isArray(messageIds) ||
+        messageIds.length === 0
+      )
+        return;
 
-    const friendId = String(chat?.friend?._id ?? chat?.friend ?? "");
-    const myId = String(currentUser?._id ?? "");
+      const friendId = String(chat?.friend?._id ?? chat?.friend ?? "");
+      const myId = String(currentUser?._id ?? "");
 
-    setMessages((prev) =>
-      prev.map((m) => {
-        const senderId = String(
-          typeof m.sender === "object" ? m.sender?._id : m.sender ?? ""
-        );
-        // Only mark messages *I sent* as read if the friend (reader) is the one who read
-        const isMine = senderId === myId;
-        const isReadByFriend = String(reader) === friendId && messageIds.includes(String(m._id));
+      setMessages((prev) =>
+        prev.map((m) => {
+          const senderId = String(
+            typeof m.sender === "object" ? m.sender?._id : m.sender ?? ""
+          );
+          // Only mark messages *I sent* as read if the friend (reader) is the one who read
+          const isMine = senderId === myId;
+          const isReadByFriend =
+            String(reader) === friendId && messageIds.includes(String(m._id));
 
-        if (isMine && isReadByFriend && !m.isRead) {
-          return { ...m, isRead: true };
-        }
-        return m;
-      })
-    );
-  },
-  [chatId, chat?.friend, currentUser?._id]
-);
-
-
-
+          if (isMine && isReadByFriend && !m.isRead) {
+            return { ...m, isRead: true };
+          }
+          return m;
+        })
+      );
+    },
+    [chatId, chat?.friend, currentUser?._id]
+  );
 
   useChatSocket(chatId, handleSocketMessage, token, handleReadUpdate);
 
@@ -276,6 +305,8 @@ const loadMessages = useCallback(
             message={m}
             currentUserId={currentUser?._id}
             chatType={chat?.isGroup ? "group" : "private"}
+            onDelete={handleDeleteMessage} // ✅ added
+            onEdit={handleEditMessage} // ✅ added
           />
         ))}
 

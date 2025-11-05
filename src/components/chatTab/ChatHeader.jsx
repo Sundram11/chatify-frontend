@@ -54,9 +54,19 @@ const ChatHeader = ({ chat }) => {
     <>
       <header className="bg-teal-600 text-white px-4 py-3 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-lg font-bold uppercase">
-            {friend?.fullName?.[0] || chat?.name?.[0]}
-          </div>
+          {/* ✅ Avatar */}
+          {chat.isGroup ? (
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
+              {chat.name?.charAt(0).toUpperCase()}
+            </div>
+          ) : (
+            <img
+              src={chat.friend?.profilePic || "/profileImage.png"}
+              alt="no profile"
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          )}
+
           <p className="font-semibold text-lg">
             {chat?.isGroup ? chat.name : friend?.fullName}
           </p>

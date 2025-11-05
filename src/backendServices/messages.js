@@ -56,18 +56,16 @@ export class MessageService {
     }
   }
 
-  async editMessage(messageId, data) {
-    try {
-      const res = await api.put(`/message/edit/${messageId}`, data);
-      return res.data;
-    } catch (error) {
-      console.error(
-        "error :: editMessage :: messageService",
-        error.response?.data || error
-      );
-      throw error;
-    }
+ async editMessage(messageId, newText) {
+  try {
+    const res = await api.put(`/message/edit/${messageId}`, { text: newText });
+    return res.data;
+  } catch (error) {
+    console.error("error :: editMessage :: messageService", error.response?.data || error);
+    throw error;
   }
+}
+
 
   async deleteChat(chatId) {
     try {
