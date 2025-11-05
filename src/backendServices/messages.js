@@ -82,6 +82,19 @@ export class MessageService {
     }
   }
 
+  async getUnreadCounts() {
+    try {
+      const res = await api.get("/message/unreadCounts");
+      return res.data;
+    } catch (error) {
+      console.error(
+        "error :: getUnreadCounts :: messageService",
+        error.response?.data || error
+      );
+      throw error;
+    }
+  }
+
   /**
    * ✅ Delete a message by ID.
    * @param {string} messageId

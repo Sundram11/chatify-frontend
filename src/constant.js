@@ -8,9 +8,8 @@ export const ChatEventEnum = Object.freeze({
   MESSAGE_EDIT_EVENT: "messageEdited",
   MESSAGE_DELETE_EVENT: "messageDeleted",
   SOCKET_ERROR_EVENT: "socketError",
-  STOP_TYPING_EVENT: "stopTyping",
-  TYPING_EVENT: "typing",
   MESSAGE_READ_EVENT: "messages_read",
   NEW_REQUEST: "friend_request_sent",
   STATUS_UPDATE: "friend_request_status_update",
+  UNREAD_COUNT_UPDATE:"UNREAD_COUNT_UPDATE",
 });

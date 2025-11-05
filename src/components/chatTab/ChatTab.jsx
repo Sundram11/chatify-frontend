@@ -10,7 +10,7 @@ import { useParams, useLocation } from "react-router-dom";
 import { useSelector, shallowEqual } from "react-redux";
 import Message from "../messagefomat/MessageFormat.jsx";
 import messageService from "../../backendServices/messages.js";
-import useChatSocket from "../../sockets/ChatTabSocket.js";
+import useChatSocket from "../../sockets/ChatTabSocket.jsx";
 import ChatHeader from "./ChatHeader.jsx";
 import ChatInput from "./ChatInput.jsx";
 
