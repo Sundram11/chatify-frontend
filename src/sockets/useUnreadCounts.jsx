@@ -16,6 +16,7 @@ const useUnreadCounts = (currentChatId, token, userId, onReorderChat) => {
       try {
         const { data } = await messageService.getUnreadCounts();
         const apiData = data?.data || {};
+        console.log("chats read",apiData)
         const filtered = {};
         Object.values(apiData).forEach((item) => {
           if (item.senderId !== userId) {

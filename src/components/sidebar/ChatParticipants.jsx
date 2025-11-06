@@ -8,6 +8,9 @@ const ChatParticipant = ({
   onSelectChat,
   formatTime,
 }) => {
+  // 🟢 hide unread if group
+  const showUnread = unread && !chat.isGroup;
+
   return (
     <li
       onClick={() => onSelectChat(chat)}
@@ -17,7 +20,7 @@ const ChatParticipant = ({
             ? "bg-gray-200 dark:bg-gray-800"
             : "hover:bg-gray-100 dark:hover:bg-gray-800"
         }
-        ${unread ? "ring-1 ring-blue-500/40" : ""}`}
+        ${showUnread ? "ring-1 ring-blue-500/40" : ""}`}
     >
       {/* avatar */}
       {chat.isGroup ? (
@@ -27,7 +30,7 @@ const ChatParticipant = ({
       ) : (
         <img
           src={chat.friend?.profilePic || "/profileImage.png"}
-          alt="profile"
+          alt=""
           className="w-10 h-10 rounded-full object-cover border border-gray-700"
         />
       )}
@@ -36,7 +39,7 @@ const ChatParticipant = ({
       <div className="ml-3 flex-1 min-w-0">
         <p
           className={`font-medium truncate ${
-            unread
+            showUnread
               ? "text-gray-800 dark:text-white"
               : "text-gray-800 dark:text-gray-400"
           }`}
@@ -49,12 +52,14 @@ const ChatParticipant = ({
       <div className="flex flex-col items-end ml-2 space-y-1">
         <span
           className={`text-xs ${
-            unread ? "text-blue-400" : "text-gray-500"
+            showUnread ? "text-blue-400" : "text-gray-500"
           }`}
         >
           {formatTime(chat.lastMessageTime)}
         </span>
-        {unread && <Bs1CircleFill size={16} className="text-blue-400" />}
+
+        {/* 🟢 only show for one-to-one chats */}
+        {showUnread && <Bs1CircleFill size={16} className="text-blue-400" />}
       </div>
     </li>
   );

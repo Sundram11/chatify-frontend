@@ -26,6 +26,7 @@ const FriendRequests = ({ onOpenChat }) => {
     try {
       const res = await friendService.getSentRequests();
       setSent(res.data || []);
+      
     } catch (err) {
       console.error("Error fetching sent:", err);
     } finally {
@@ -38,6 +39,7 @@ const FriendRequests = ({ onOpenChat }) => {
     try {
       const res = await friendService.getAllActiveFriends();
       setFriends(res.data || []);
+      console.log(res);
     } catch (err) {
       console.error("Error fetching friends:", err);
     } finally {

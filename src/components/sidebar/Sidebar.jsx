@@ -3,17 +3,19 @@ import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import messageService from "../../backendServices/messages.js";
 import useUnreadCounts from "../../sockets/useUnreadCounts.jsx";
-import SearchBar from "../search/SearchBar.jsx";
+import { SearchBar, CreateChatModal } from "../index.js";
 import ChatParticipant from "./ChatParticipants.jsx";
+import { Plus } from "lucide-react"; // 🟢 import icon
 
 const Sidebar = ({
   onSelectChat,
   selectedChatId,
   localMessageEvent,
-  onOpenChatWithUser, // 🟩 added prop for direct chat open
+  onOpenChatWithUser,
 }) => {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [openCreateChat, setOpenCreateChat] = useState(false); // 🟢 state for modal
   const { accessToken, user } = useSelector((s) => s.auth);
   const mode = useSelector((s) => s.theme.mode);
 
@@ -104,8 +106,19 @@ const Sidebar = ({
       <div className="p-4 border-b border-gray-800 flex flex-col gap-3 sticky top-0 z-10 bg-inherit">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-wide">ChatApp</h1>
+
+          {/* 🟢 Create Chat Button */}
+          <button
+            onClick={() => setOpenCreateChat(true)}
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+            title="Create Chat"
+          >
+            <Plus size={22} />
+          </button>
         </div>
-        <SearchBar onOpenChatWithUser={onOpenChatWithUser} /> {/* 🟩 pass it down */}
+
+        {/* 🟢 Search bar */}
+        <SearchBar onOpenChatWithUser={onOpenChatWithUser} />
       </div>
 
       {/* 🔹 Chat list */}
@@ -113,7 +126,10 @@ const Sidebar = ({
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse flex items-center space-x-3">
+              <div
+                key={i}
+                className="animate-pulse flex items-center space-x-3"
+              >
                 <div className="w-10 h-10 bg-gray-700 rounded-full" />
                 <div className="flex-1">
                   <div className="w-24 h-3 bg-gray-700 rounded" />
@@ -143,6 +159,13 @@ const Sidebar = ({
           <p className="text-gray-500 text-sm">No chats found</p>
         )}
       </div>
+
+      {/* 🟢 Modal for creating chat */}
+      <CreateChatModal
+        open={openCreateChat}
+        onClose={() => setOpenCreateChat(false)}
+        onChatCreated={() => loadChats()}
+      />
     </div>
   );
 };
