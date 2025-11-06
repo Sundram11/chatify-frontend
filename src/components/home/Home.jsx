@@ -1,78 +1,104 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import Sidebar from "../sidebar/Sidebar.jsx";
 import ChatTab from "../chatTab/ChatTab.jsx";
-import { useOutletContext } from "react-router-dom";
+import Footer from "../footer/Footer.jsx";
+import chatService from "../../backendServices/chat.js";
 
 const ChatLayout = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [localMessageEvent, setLocalMessageEvent] = useState(null);
 
-  // ✅ Access footer visibility control from parent (App)
-  const { setFooterVisible } = useOutletContext();
-
-  // 🟩 Handle responsive footer visibility (mobile only)
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setFooterVisible(!selectedChat);
-      } else {
-        setFooterVisible(true);
-      }
-    };
-
-    handleResize(); // initial run
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [selectedChat, setFooterVisible]);
-
-  // 🟦 Callbacks
   const handleSelectChat = useCallback((chat) => setSelectedChat(chat), []);
   const handleMessageSent = useCallback(
     (event) => setLocalMessageEvent(event),
     []
   );
 
+  // 🟩 Open chat directly from user
+  const handleOpenChatWithUser = useCallback(async (user) => {
+    try {
+      const chat = await chatService.createOrGetOneToOneChat(user._id);
+      const chatData = {
+        ...chat.data,
+        friend: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          profilePic: user.profilePic,
+        },
+      };
+      setSelectedChat(chatData);
+    } catch (err) {
+      console.error("Error opening chat:", err);
+    }
+  }, []);
+
   return (
-    <div className="h-[calc(100vh-56px)] bg-gray-100 dark:bg-gray-900 overflow-hidden transition-colors duration-300">
-      {/* 💻 Desktop View */}
-      <div className="hidden md:flex h-full">
-        {/* Sidebar */}
-        <aside className="w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-800 transition-colors duration-300">
-          <Sidebar
-            onSelectChat={handleSelectChat}
-            selectedChatId={selectedChat?._id}
-            localMessageEvent={localMessageEvent}
-          />
+    <div className="h-screen w-full bg-gray-100 dark:bg-gray-900 flex flex-col transition-colors duration-300">
+      {/* ============== DESKTOP ============== */}
+      <div className="hidden md:flex flex-1 overflow-hidden">
+        {/* 🟩 Sidebar fills full height */}
+        <aside className="flex h-full w-1/2lg:w-96 border-r border-gray-200 dark:border-gray-800">
+          {/* Footer stays pinned bottom */}
+          <div className="shrink-0">
+            <Footer />
+          </div>
+          {/* Sidebar scrolls internally */}
+          <div className="flex-1 overflow-y-auto">
+            <Sidebar
+              onSelectChat={handleSelectChat}
+              onOpenChatWithUser={handleOpenChatWithUser}
+              selectedChatId={selectedChat?._id}
+              localMessageEvent={localMessageEvent}
+            />
+          </div>
         </aside>
 
-        {/* Chat Tab */}
-        <main className="flex-1">
+        {/* 🟩 Chat Area */}
+        <main className="flex-1 h-full overflow-hidden">
           {selectedChat ? (
             <ChatTab chat={selectedChat} onMessageSent={handleMessageSent} />
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-center select-none">
-              Select a chat to start messaging 💬
+            <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+              Select a chat to start messaging
             </div>
           )}
         </main>
       </div>
 
-      {/* 📱 Mobile View */}
-      <div className="flex md:hidden h-full transition-all duration-300">
-        {!selectedChat ? (
-          <Sidebar
-            onSelectChat={handleSelectChat}
-            selectedChatId={selectedChat?._id}
-            localMessageEvent={localMessageEvent}
-          />
-        ) : (
-          <ChatTab
-            chat={selectedChat}
-            onMessageSent={handleMessageSent}
-            onBack={() => setSelectedChat(null)}
-          />
-        )}
+      {/* ============== MOBILE ============== */}
+      {/* ============== MOBILE ============== */}
+{/* ============== MOBILE ============== */}
+<div className="flex md:hidden h-full overflow-hidden">
+  {!selectedChat ? (
+    <div className="flex flex-row h-full w-full">
+      {/* Footer on the right side */}
+      <div className="w-16 flex-shrink-0 border-l border-gray-800 bg-gray-950 flex flex-col items-center justify-between py-4">
+        <Footer />
       </div>
+
+      {/* Sidebar area */}
+      <div className="flex-1 overflow-y-auto">
+        <Sidebar
+          onSelectChat={handleSelectChat}
+          onOpenChatWithUser={handleOpenChatWithUser}
+          selectedChatId={selectedChat?._id}
+          localMessageEvent={localMessageEvent}
+        />
+      </div>
+    </div>
+  ) : (
+    <div className="flex-1 w-full">
+      <ChatTab
+        chat={selectedChat}
+        onMessageSent={handleMessageSent}
+        onBack={() => setSelectedChat(null)}
+      />
+    </div>
+  )}
+</div>
+
+
     </div>
   );
 };

@@ -1,13 +1,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, User, LogOut, Users } from "lucide-react";
+import { FiLogOut } from "react-icons/fi";           // Logout
+import { FaUserFriends } from "react-icons/fa";       // Friend Requests
 import { ThemeToggle } from "../index.js";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { authLogout } from "../../store/AuthSlice.js";
 
 const Footer = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
     dispatch(authLogout());
@@ -15,57 +17,57 @@ const Footer = () => {
   };
 
   return (
-    <header className="w-full flex items-center justify-between px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-700 dark:from-gray-900 dark:to-gray-950 border-b border-gray-800 sticky top-0 z-50 shadow-md transition-colors duration-300">
-      {/* Logo */}
+    <aside className="w-20 md:w-24 lg:w-28 h-full bg-gradient-to-b from-teal-600 to-teal-700 dark:from-gray-900 dark:to-gray-950 flex flex-col text-white shadow-lg">
+      {/* ===== USER INFO AT TOP ===== */}
       <div
-        onClick={() => navigate("/")}
-        className="flex items-center gap-2 cursor-pointer select-none"
+        onClick={() => navigate("/profile")}
+        className="flex flex-col items-center gap-1 cursor-pointer group p-4 pb-6"
+        title={user?.fullName || "Profile"}
       >
-        <div className="bg-white dark:bg-teal-500 text-teal-700 dark:text-white rounded-full px-3 py-1 font-bold shadow-sm">
-          Chat
+        <div className="relative">
+          <img
+            src={user?.avatar || "/profileImage.png"}
+            alt="avatar"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover ring-2 ring-white/30 shadow-md"
+          />
+          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full ring-2 ring-teal-700"></span>
         </div>
-        <span className="text-white font-semibold text-lg hidden sm:block tracking-wide">
-          Connect
-        </span>
+
+        <p className="text-xs md:text-sm font-medium truncate max-w-full px-1 text-center group-hover:text-white/90">
+          {user?.fullName?.split(" ")[0] || "You"}
+        </p>
       </div>
 
-      {/* Action Icons */}
-      <div className="flex items-center gap-4 text-white/90">
-        <button
-          onClick={() => navigate("/search")}
-          title="Search"
-          className="hover:text-white transition-transform duration-200 hover:scale-110"
-        >
-          <Search size={22} />
-        </button>
+      {/* ===== FLEX GROW SPACER ===== */}
+      <div className="flex-1"></div>
 
+      {/* ===== ACTION ICONS AT BOTTOM ===== */}
+      <div className="flex flex-col gap-5 pb-6 px-2">
+
+        {/* Friend Requests */}
         <button
           onClick={() => navigate("/requests")}
-          title="Requests"
-          className="hover:text-white transition-transform duration-200 hover:scale-110"
+          title="Friend Requests"
+          className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110"
         >
-          <Users size={22} />
+          <FaUserFriends size={24} className="mx-auto" />
         </button>
 
-        <button
-          onClick={() => navigate("/profile")}
-          title="Profile"
-          className="hover:text-white transition-transform duration-200 hover:scale-110"
-        >
-          <User size={22} />
-        </button>
+        {/* Theme Toggle */}
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
 
-        <ThemeToggle />
-
+        {/* Logout */}
         <button
           onClick={handleLogout}
           title="Logout"
-          className="hover:text-red-400 transition-transform duration-200 hover:scale-110"
+          className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all hover:scale-110"
         >
-          <LogOut size={22} />
+          <FiLogOut size={24} className="mx-auto" />
         </button>
       </div>
-    </header>
+    </aside>
   );
 };
 

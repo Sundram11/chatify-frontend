@@ -1,32 +1,16 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import chatService from "../../backendServices/chat";
-import friendService from "../../backendServices/friends";
+import friendService from "../../backendServices/friends.js";
 import { getSocket } from "../../socket";
 import { ChatEventEnum } from "../../constant";
 
-const UserCard = ({ user, isIncomingRequest = false, onAccept, onReject }) => {
-  const navigate = useNavigate();
+const UserCard = ({
+  user,
+  isIncomingRequest = false,
+  onAccept,
+  onReject,
+  onOpenChat,
+}) => {
   const { _id, fullName, email, profilePic, friendRequestStatus } = user;
-
-  // 🟦 Open chat
-  const onMessage = async (userId) => {
-    try {
-      const chat = await chatService.createOrGetOneToOneChat(userId);
-      const chatData = {
-        ...chat.data,
-        friend: {
-          _id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          profilePic: user.profilePic,
-        },
-      };
-      navigate(`/chat/${chat._id}`, { state: { chat: chatData } });
-    } catch (err) {
-      console.error("Error opening chat:", err);
-    }
-  };
 
   // 🟩 Send friend request
   const onFollow = async (userId) => {
@@ -46,9 +30,8 @@ const UserCard = ({ user, isIncomingRequest = false, onAccept, onReject }) => {
     }
   };
 
-  // 🟨 Render actions
+  // 🟨 Render action buttons
   const renderActions = () => {
-    // ✅ Incoming requests → Accept / Reject
     if (isIncomingRequest && friendRequestStatus === "pending") {
       return (
         <>
@@ -68,74 +51,61 @@ const UserCard = ({ user, isIncomingRequest = false, onAccept, onReject }) => {
       );
     }
 
-    // ✅ Sent requests or general users
-    if (!isIncomingRequest) {
-      switch (friendRequestStatus) {
-        case "pending":
-          return (
+    switch (friendRequestStatus) {
+      case "pending":
+        return (
+          <button
+            disabled
+            className="px-3 py-1 text-sm bg-yellow-600 text-white rounded-lg cursor-not-allowed"
+          >
+            Pending
+          </button>
+        );
+
+      case "rejected":
+        return (
+          <button
+            onClick={() => onFollow(_id)}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Follow
+          </button>
+        );
+
+      case "accepted":
+        return (
+          <>
             <button
               disabled
-              className="px-3 py-1 text-sm bg-yellow-600 text-white rounded-lg cursor-not-allowed"
+              className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg"
             >
-              Pending
+              Friends
             </button>
-          );
-
-        case "rejected":
-          return (
-            <>
+            {onOpenChat && (
               <button
-                onClick={() => onFollow(_id)}
-                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Follow
-              </button>
-              <button
-                disabled
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg"
-              >
-                rejected
-              </button>
-            </>
-          );
-
-        case "accepted":
-          return (
-            <>
-              <button
-                disabled
-                className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg"
-              >
-                Friends
-              </button>
-              <button
-                onClick={() => onMessage(_id)}
+                onClick={() => onOpenChat(user)}
                 className="px-3 py-1 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-600"
               >
                 Message
               </button>
-            </>
-          );
+            )}
+          </>
+        );
 
-        case "none":
-        default:
-          return (
-            <button
-              onClick={() => onFollow(_id)}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Follow
-            </button>
-          );
-      }
+      default:
+        return (
+          <button
+            onClick={() => onFollow(_id)}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Follow
+          </button>
+        );
     }
-
-    return null;
   };
 
   return (
     <div className="flex items-center justify-between p-3 bg-gray-800 rounded-xl hover:bg-gray-750 transition">
-      {/* User Info */}
       <div className="flex items-center gap-3">
         <img
           src={profilePic || "/default-avatar.png"}
@@ -147,8 +117,6 @@ const UserCard = ({ user, isIncomingRequest = false, onAccept, onReject }) => {
           <p className="text-gray-400 text-sm">{email}</p>
         </div>
       </div>
-
-      {/* Actions */}
       <div className="flex gap-2">{renderActions()}</div>
     </div>
   );

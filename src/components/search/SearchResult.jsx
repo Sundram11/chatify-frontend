@@ -1,32 +1,32 @@
-import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Search } from "lucide-react";
 import authService from "../../backendServices/auth.js";
-import { UserCard, Input } from "../index.js";
+import chatService from "../../backendServices/chat.js";
+import { UserCard } from "../index.js";
+import ChatTab from "../chatTab/ChatTab.jsx";
 import useFriendRequestSocket from "../../sockets/FriendRequestSocket.js";
 
-const SearchResults = () => {
+const SearchResultsPage = () => {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [localMessageEvent, setLocalMessageEvent] = useState(null);
+
   const location = useLocation();
-  const navigate = useNavigate();
   const { accessToken } = useSelector((state) => state.auth);
 
-  // 🟦 Read initial query from URL
   useEffect(() => {
     const q = new URLSearchParams(location.search).get("q") || "";
     setQuery(q);
   }, [location.search]);
 
-  // 🟢 Fetch users from backend
   const fetchUsers = async (searchTerm) => {
     if (!searchTerm.trim()) {
       setUsers([]);
       return;
     }
-
     setLoading(true);
     try {
       const res = await authService.searchUsers(searchTerm);
@@ -38,12 +38,10 @@ const SearchResults = () => {
     }
   };
 
-  // 🔵 Fetch when query changes
   useEffect(() => {
     if (query) fetchUsers(query);
   }, [query]);
 
-  // 🟣 Real-time friend request updates
   useFriendRequestSocket(
     (data) => {
       setUsers((prev) =>
@@ -57,39 +55,55 @@ const SearchResults = () => {
     accessToken
   );
 
-  // 🟠 Handle form submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(query)}`);
-    fetchUsers(query);
-  };
+  const handleOpenChat = useCallback(async (userObj) => {
+    try {
+      const chatRes = await chatService.createOrGetOneToOneChat(userObj._id);
+      const chatData = {
+        ...chatRes.data,
+        friend: {
+          _id: userObj._id,
+          fullName: userObj.fullName,
+          email: userObj.email,
+          profilePic: userObj.profilePic,
+        },
+      };
+      setSelectedChat(chatData);
+    } catch (err) {
+      console.error("Error opening chat:", err);
+    }
+  }, []);
+
+  const handleMessageSent = useCallback((event) => {
+    setLocalMessageEvent(event);
+  }, []);
+
+  if (selectedChat) {
+    return (
+      <div className="h-screen flex flex-col">
+        <ChatTab
+          chat={selectedChat}
+          onMessageSent={handleMessageSent}
+          onBack={() => setSelectedChat(null)}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto mt-6 p-4 transition-all duration-300">
-      {/* 🔍 Search Input */}
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-center mb-6 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-teal-500 transition-all"
-      >
-        <Search className="text-gray-500 dark:text-gray-400 w-5 h-5 mr-2" />
-        <Input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search users..."
-          className="bg-transparent flex-1 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 border-none focus:outline-none"
-        />
-      </form>
+    <div className="max-w-2xl mx-auto mt-6 p-4">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        Search Results for{" "}
+        "<span className="text-teal-600 dark:text-teal-400">{query}</span>"
+      </h1>
 
-      {/* 🧩 Results */}
       {loading ? (
         <div className="text-center text-gray-500 dark:text-gray-400 py-12 animate-pulse">
           Searching...
         </div>
       ) : users.length > 0 ? (
-        <div className="space-y-3 animate-fadeIn">
+        <div className="space-y-3">
           {users.map((user) => (
-            <UserCard key={user._id} user={user} />
+            <UserCard key={user._id} user={user} onOpenChat={handleOpenChat} />
           ))}
         </div>
       ) : query.trim() ? (
@@ -98,11 +112,11 @@ const SearchResults = () => {
         </p>
       ) : (
         <p className="text-gray-400 dark:text-gray-500 text-center py-6">
-          Type something to start searching 🔍
+          Start typing in the search bar to find users
         </p>
       )}
     </div>
   );
 };
 
-export default SearchResults;
+export default SearchResultsPage;
