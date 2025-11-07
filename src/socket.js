@@ -4,7 +4,7 @@ import { ChatEventEnum } from "./constant.js";
 let socket = null;
 
 export const connectSocket = (token) => {
-  if (socket) return socket;
+  if (socket?.connected) return socket;
 
   socket = io(import.meta.env.VITE_SOCKET_URL, {
     transports: ["websocket"],

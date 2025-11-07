@@ -1,15 +1,22 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiLogOut } from "react-icons/fi";           // Logout
-import { FaUserFriends } from "react-icons/fa";       // Friend Requests
+import { FiLogOut } from "react-icons/fi";
+import { FaUserFriends } from "react-icons/fa";
 import { ThemeToggle } from "../index.js";
 import { useDispatch, useSelector } from "react-redux";
 import { authLogout } from "../../store/AuthSlice.js";
+import useFriendRequestSocket from "../../sockets/FriendRequestSocket.js";
 
 const Footer = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const [hasNotification, setHasNotification] = useState(false);
+
+  // Listen to new incoming friend requests
+  useFriendRequestSocket(() => {
+    setHasNotification(true);
+  }, localStorage.getItem("token"));
 
   const handleLogout = () => {
     dispatch(authLogout());
@@ -38,27 +45,29 @@ const Footer = () => {
         </p>
       </div>
 
-      {/* ===== FLEX GROW SPACER ===== */}
       <div className="flex-1"></div>
 
       {/* ===== ACTION ICONS AT BOTTOM ===== */}
-      <div className="flex flex-col gap-5 pb-6 px-2">
-
+      <div className="flex flex-col gap-5 pb-6 px-2 relative">
         {/* Friend Requests */}
         <button
-          onClick={() => navigate("/requests")}
+          onClick={() => {
+            navigate("/requests");
+            setHasNotification(false);
+          }}
           title="Friend Requests"
-          className="p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110"
+          className="relative p-2 rounded-lg hover:bg-white/10 transition-all hover:scale-110"
         >
           <FaUserFriends size={24} className="mx-auto" />
+          {hasNotification && (
+            <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-teal-700"></span>
+          )}
         </button>
 
-        {/* Theme Toggle */}
         <div className="flex justify-center">
           <ThemeToggle />
         </div>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
           title="Logout"

@@ -1,24 +1,30 @@
 import { useEffect } from "react";
-import { getSocket } from "../socket.js";
+import { getSocket, connectSocket } from "../socket.js";
 import { ChatEventEnum } from "../constant.js";
 
 const useFriendRequestSocket = (onUpdate, token) => {
   useEffect(() => {
     if (!token) return;
-    const socket = getSocket();
+
+    let socket = getSocket();
+    if (!socket) socket = connectSocket(token);
+    console.log("connecting", socket)
     if (!socket) return;
 
-    // 🟢 When a new friend request is sent to this user
+    console.log("[Socket Hook] Listening for friend request events...");
+
     const handleNewRequest = (data) => {
-      console.log("[Socket] New friend request received:", data);
-      onUpdate?.(data);
+      console.log("📩 [Socket] New friend request received:", data);
+      onUpdate?.({ type: "NEW_REQUEST", payload: data });
     };
 
-    // 🟢 When the status (pending → accepted/rejected) changes
     const handleStatusUpdate = (data) => {
-      console.log("[Socket] Friend request status updated:", data);
-      onUpdate?.(data);
+      console.log("📩 [Socket] Friend request status updated:", data);
+      onUpdate?.({ type: "STATUS_UPDATE", payload: data });
     };
+
+    // Debug: show all events coming in
+    socket.onAny((event, data) => console.log("📡 Event:", event, data));
 
     socket.on(ChatEventEnum.NEW_REQUEST, handleNewRequest);
     socket.on(ChatEventEnum.STATUS_UPDATE, handleStatusUpdate);

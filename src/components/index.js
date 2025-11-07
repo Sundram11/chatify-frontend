@@ -8,7 +8,7 @@ import ThemeToggle from "./button/ThemeToggleBtn.jsx"
 import ChatTab from "./chatTab/ChatTab.jsx"
 import SearchResults from "./search/SearchResult.jsx"
 import UserCard from "./userCard/UserCard.jsx"
-import FriendRequests from "./friendRequest/CommingRequests.jsx"
+import FriendRequests from "./friendRequest/RequestHangler.jsx"
 import SearchBar from "./search/SearchBar.jsx"
 import CreateChatModal from "./createChat/CreateChatModal.jsx"
 
